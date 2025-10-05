@@ -1,0 +1,3 @@
+1. Durch die Trennung von Testcode und Produktivcode erzeugt man eine klare Struktur, die bessere Wartbarkeit und Übersicht garantiert.
+2. Die Abdeckung aller relevanten Fälle, bei Minimierung der Testfälle. Jeder Wert innerhalb einer Klasse soll sich gleich verhalten.
+3. Die Client-Klasse verwendet das Interface Translator, ruft aber keine eigene Logik auf. Zudem ist display() nicht testbar, da es nur System.out.println ausgibt.
