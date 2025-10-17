@@ -36,7 +36,7 @@ public class ContainerTest {
         ContainerException thrown = assertThrows(ContainerException.class, () -> {
             container.addMember(new ConcreteMember(1));
         });
-        assertEquals("Das Member-Objekt mit der ID 1 ist bereits vorhanden!", thrown.getMessage());
+        assertEquals("s", thrown.getMessage());
     }
 
     @Test

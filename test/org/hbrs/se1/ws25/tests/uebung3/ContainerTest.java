@@ -1,21 +1,35 @@
 package org.hbrs.se1.ws25.tests.uebung3;
 
-import org.hbrs.se1.ws25.exercises.uebung2.Member;
+import org.hbrs.se1.ws25.uebung2.ConcreteMember;
+import org.hbrs.se1.ws25.uebung2.ContainerException;
+import org.hbrs.se1.ws25.uebung2.Member;
+import org.hbrs.se1.ws25.exercises.uebung3.*;
 import org.hbrs.se1.ws25.exercises.uebung3.persistence.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.hbrs.se1.ws25.exercises.uebung3.persistence.PersistenceException.ExceptionType.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 class ContainerTest {
 
-    // private Container container;
+    private Container container;
 
     @BeforeEach
-    void setUp() {
-        // Hier muss der Container einmalig als Singleton instanziiert werden.
+    public void setup() {
+        container = Container.getInstance();
+        container.deleteAllMembers(); // Sauberer Start
     }
 
     @Test
     void testMongoDBNotImplementedSolution() {
+        container.setPersistenceStrategy(new PersistenceStrategyMongoDB<>());
+        PersistenceException thrown = assertThrows(PersistenceException.class, () -> {
+            container.store();
+        });
+        assertTrue(thrown.getMessage().contains("MongoDB nicht implementiert"));
+
+
         // Set a strategy, which has not been implemented
         // container.setPersistenceStrategie( new PersistenceStrategyMongoDB<Member>() );
 
@@ -28,38 +42,65 @@ class ContainerTest {
 
     @Test
     void testNoStrategeySet() {
-        //
-            // container.setPersistenceStrategie(null);
-            // container.store();
-        // } catch (PersistenceException e) {
-            // Bitte auch hier die Message und den ExceptionType prüfen.
-        // }
+        container.setPersistenceStrategy(null);
+        PersistenceException thrown = assertThrows(PersistenceException.class, () -> {
+            container.store();
+        });
+        assertTrue(thrown.getMessage().contains("Keine Persistence-Strategie"));
     }
 
     @Test
     void testWrongLocationOfFile() {
-        // try {
-           //  PersistenceStrategyStream<Member> strat = new PersistenceStrategyStream<Member>();
-            // FileStreams do not like directories, so try this out ;-)
-            // strat.setLocation("/Users/saschaalda/tmp");
-            // container.setPersistenceStrategie( strat );
-            // container.store();
+        PersistenceStrategyStream<Member> strat = new PersistenceStrategyStream<>();
+        strat.setLocation("/Users/philippstrunk/tmp"); // Directory statt Datei
+        container.setPersistenceStrategy(strat);
 
-        // } catch (PersistenceException e) {
-            // Auch hier diverse Assertions bringen, um die Nachricht und den ExceptionType zu testen.
-        // }
+        Member m = new ConcreteMember(1);
+        try {
+            container.addMember(m);
+        } catch (ContainerException e) {
+            fail("Setup fehlgeschlagen: " + e.getMessage());
+        }
+
+        PersistenceException thrown = assertThrows(PersistenceException.class, () -> {
+            container.store();
+        });
+
+        assertTrue(thrown.getMessage().contains("Speichern fehlgeschlagen"));
     }
 
     @Test
     void testStoreDeleteAndLoad() {
-        // Testen Sie folgenden RoundTrip:
-        // 1. Lösche alle Member-Objekte (Sicher ist sicher! Dazu die Methode deleteAllMember implementieren!)
-        // 2. Setzen der Strategie
-        // 3. Hinzufügen eines Member-Objekts
-        // 4. Abspeichern
-        // 5. Löschen des Member-Objekts
-        // 6. Laden
-        // Die Zustandsänderungen mittels der size() bitte stets testen!
+        try {
+            // 1. Alles löschen
+            container.deleteAllMembers();
+            assertEquals(0, container.size());
+
+            // 2. Strategie setzen
+            PersistenceStrategyStream<Member> strategy = new PersistenceStrategyStream<>();
+            strategy.setLocation("test_member.ser");
+            container.setPersistenceStrategy(strategy);
+
+            // 3. Member hinzufügen
+            Member m = new ConcreteMember(42);
+            container.addMember(m);
+            assertEquals(1, container.size());
+
+            // 4. Abspeichern
+            container.store();
+
+            // 5. Löschen
+            container.deleteAllMembers();
+            assertEquals(0, container.size());
+
+            // 6. Laden
+            container.load();
+            assertEquals(1, container.size());
+            assertEquals(42, container.getCurrentList().get(0).getID());
+
+        } catch (Exception e) {
+            fail("RoundTrip-Test fehlgeschlagen: " + e.getMessage());
+        }
     }
 
 }

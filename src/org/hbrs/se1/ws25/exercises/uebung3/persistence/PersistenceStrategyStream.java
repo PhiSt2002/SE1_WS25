@@ -1,10 +1,20 @@
 package org.hbrs.se1.ws25.exercises.uebung3.persistence;
+
+import java.io.*;
 import java.util.List;
+
+import static org.hbrs.se1.ws25.exercises.uebung3.persistence.PersistenceException.ExceptionType.*;
 
 public class PersistenceStrategyStream<E> implements PersistenceStrategy<E> {
 
     // URL of file, in which the objects are stored
     private String location = "objects.ser";
+
+    private ObjectOutputStream oos = null;
+    private FileOutputStream fos = null;
+
+    private FileInputStream fis = null;
+    private ObjectInputStream ois = null;
 
     // Backdoor method used only for testing purposes, if the location should be changed in a Unit-Test
     // Example: Location is a directory (Streams do not like directories, so try this out ;-)!
@@ -20,7 +30,19 @@ public class PersistenceStrategyStream<E> implements PersistenceStrategy<E> {
      * (Last Access: Oct, 13th 2025)
      */
     public void save(List<E> member) throws PersistenceException  {
+        try {
+            fos = new FileOutputStream(location);
+            oos = new ObjectOutputStream(fos);
 
+            System.out.println( "LOG: Es wurden " + member.size() + " Member-Objekte wurden erfolgreich gespeichert!");
+            oos.writeObject(member);
+
+            oos.close();
+            fos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new PersistenceException(SaveFailure, "Fehler beim Speichern der Datei!");
+        }
     }
 
     @Override
@@ -30,26 +52,23 @@ public class PersistenceStrategyStream<E> implements PersistenceStrategy<E> {
      * Take also a look at the import statements above ;-!
      */
     public List<E> load() throws PersistenceException  {
-        // Some Coding hints ;-)
+        List<E> list = null;
 
-        // ObjectInputStream ois = null;
-        // FileInputStream fis = null;
-        // List<...> newListe =  null;
-        //
-        // Initiating the Stream (can also be moved to method openConnection()... ;-)
-        // fis = new FileInputStream( " a location to a file" );
+        try {
+            Object obj = ois.readObject();
+            if (obj instanceof List<?>) {
+                list = (List) obj;
+            }
+            System.out.println("LOG: Es wurden " + list.size() + " User Stories erfolgreich reingeladen!");
 
-        // Tipp: Use a directory (ends with "/") to implement a negative test case ;-)
-        // ois = new ObjectInputStream(fis);
+            return list;
 
-        // Reading and extracting the list (try .. catch ommitted here)
-        // Object obj = ois.readObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new PersistenceException(LoadFailure, "Fehler beim Laden der Datei!");
 
-        // if (obj instanceof List<?>) {
-        //       newListe = (List) obj;
-        // return newListe
-
-        // and finally close the streams
-        return null;
+        } catch (ClassNotFoundException e) {
+            throw new PersistenceException(LoadFailure, "Fehler beim Laden der Datei! Class not found!");
+        }
     }
 }
